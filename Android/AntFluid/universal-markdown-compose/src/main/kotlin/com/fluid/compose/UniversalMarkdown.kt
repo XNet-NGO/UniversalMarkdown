@@ -62,6 +62,7 @@ fun UniversalMarkdown(
     animateStreaming: Boolean = false,
     onLinkClick: ((String) -> Unit)? = null,
     onImageContent: (@Composable (url: String, alt: String) -> Unit)? = null,
+    onExportPdf: ((String) -> Unit)? = null,
 ) {
     val nodes = remember(content, theme) {
         parseMarkdown(content, theme)
@@ -88,7 +89,7 @@ fun UniversalMarkdown(
                 wrapper {
                 when (node) {
                     is MarkdownNode.TextBlock -> MarkdownText(node, linkHandler, theme)
-                    is MarkdownNode.CodeBlock -> CodeBlockView(node, theme)
+                    is MarkdownNode.CodeBlock -> CodeBlockView(node, theme, onExportPdf)
                     is MarkdownNode.TableBlock -> TableBlockView(node, theme)
                     is MarkdownNode.ImageBlock -> {
                         if (onImageContent != null) {
@@ -206,10 +207,11 @@ private fun MarkdownText(node: MarkdownNode.TextBlock, onLinkClick: (String) -> 
 }
 
 @Composable
-private fun CodeBlockView(node: MarkdownNode.CodeBlock, theme: MarkdownTheme) {
+private fun CodeBlockView(node: MarkdownNode.CodeBlock, theme: MarkdownTheme, onExportPdf: ((String) -> Unit)? = null) {
     val shape = RoundedCornerShape(theme.codeCornerRadius)
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
+    val isLatex = node.language?.lowercase()?.let { it == "latex" || it == "tex" } == true
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -218,7 +220,7 @@ private fun CodeBlockView(node: MarkdownNode.CodeBlock, theme: MarkdownTheme) {
             .background(theme.codeBgColor, shape)
             .border(1.dp, theme.codeBorderColor, shape)
     ) {
-        // Header: language label + copy button
+        // Header: language label + export/copy buttons
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -230,15 +232,25 @@ private fun CodeBlockView(node: MarkdownNode.CodeBlock, theme: MarkdownTheme) {
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Medium
             )
-            Text(
-                text = if (copied) "Copied" else "Copy",
-                color = theme.codeLabelColor.copy(alpha = 0.7f),
-                fontSize = 11.sp,
-                modifier = Modifier.clickable {
-                    clipboardManager.setText(AnnotatedString(node.code))
-                    copied = true
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (isLatex && onExportPdf != null) {
+                    Text(
+                        text = "Export PDF",
+                        color = theme.codeLabelColor.copy(alpha = 0.7f),
+                        fontSize = 11.sp,
+                        modifier = Modifier.clickable { onExportPdf(node.code) }
+                    )
                 }
-            )
+                Text(
+                    text = if (copied) "Copied" else "Copy",
+                    color = theme.codeLabelColor.copy(alpha = 0.7f),
+                    fontSize = 11.sp,
+                    modifier = Modifier.clickable {
+                        clipboardManager.setText(AnnotatedString(node.code))
+                        copied = true
+                    }
+                )
+            }
         }
         if (!node.language.isNullOrBlank() || node.code.isNotEmpty()) {
             HorizontalDivider(color = theme.codeBorderColor, thickness = 0.5.dp)
