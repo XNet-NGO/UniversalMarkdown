@@ -28,7 +28,7 @@ android {
 dependencies {
 
     implementation libs.androidx.appcompat
-    api 'com.atlassian.commonmark:commonmark-ext-gfm-tables:0.13.0'
+    api 'com.atlassian.commonmark:commonmark-ext-gfm-tables:0.15.2'
     compileOnly project(':markwon-core')
 
     testImplementation libs.junit
