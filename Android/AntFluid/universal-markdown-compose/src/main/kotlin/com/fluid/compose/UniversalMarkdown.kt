@@ -293,21 +293,23 @@ private fun LatexView(node: MarkdownNode.LatexBlock, theme: MarkdownTheme) {
 private fun TableBlockView(node: MarkdownNode.TableBlock, theme: MarkdownTheme, onImageContent: (@Composable (url: String, alt: String) -> Unit)? = null) {
     val shape = RoundedCornerShape(theme.tableCornerRadius)
     val colCount = node.headers.size.coerceAtLeast(node.rows.firstOrNull()?.size ?: 1)
+    val hasImages = node.rows.any { row -> row.any { it.imageUrl != null } } ||
+        node.headers.any { it.imageUrl != null }
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
-            .horizontalScroll(rememberScrollState())
+            .then(if (hasImages) Modifier else Modifier.horizontalScroll(rememberScrollState()))
     ) {
-        // Render as columns so each column is as wide as its widest cell
         Row(
             modifier = Modifier
+                .then(if (hasImages) Modifier.fillMaxWidth() else Modifier)
                 .clip(shape)
                 .border(1.dp, theme.tableBorderColor, shape)
         ) {
             for (col in 0 until colCount) {
                 val align = node.alignments.getOrElse(col) { MarkdownNode.TableBlock.Alignment.LEFT }
-                Column(Modifier.width(IntrinsicSize.Max)) {
+                Column(if (hasImages) Modifier.weight(1f) else Modifier.width(IntrinsicSize.Max)) {
                     // Header cell
                     if (node.headers.isNotEmpty()) {
                         val hCell = node.headers.getOrNull(col)
