@@ -63,6 +63,7 @@ fun UniversalMarkdown(
     onLinkClick: ((String) -> Unit)? = null,
     onImageContent: (@Composable (url: String, alt: String) -> Unit)? = null,
     onExportPdf: ((String) -> Unit)? = null,
+    onRunCode: ((code: String, language: String) -> Unit)? = null,
 ) {
     val nodes = remember(content, theme) {
         parseMarkdown(content, theme)
@@ -89,7 +90,7 @@ fun UniversalMarkdown(
                 wrapper {
                 when (node) {
                     is MarkdownNode.TextBlock -> MarkdownText(node, linkHandler, theme)
-                    is MarkdownNode.CodeBlock -> CodeBlockView(node, theme, onExportPdf)
+                    is MarkdownNode.CodeBlock -> CodeBlockView(node, theme, onExportPdf, onRunCode)
                     is MarkdownNode.TableBlock -> TableBlockView(node, theme, onImageContent)
                     is MarkdownNode.ImageBlock -> {
                         if (onImageContent != null) {
@@ -207,11 +208,13 @@ private fun MarkdownText(node: MarkdownNode.TextBlock, onLinkClick: (String) -> 
 }
 
 @Composable
-private fun CodeBlockView(node: MarkdownNode.CodeBlock, theme: MarkdownTheme, onExportPdf: ((String) -> Unit)? = null) {
+private fun CodeBlockView(node: MarkdownNode.CodeBlock, theme: MarkdownTheme, onExportPdf: ((String) -> Unit)? = null, onRunCode: ((code: String, language: String) -> Unit)? = null) {
     val shape = RoundedCornerShape(theme.codeCornerRadius)
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
     val isLatex = node.language?.lowercase()?.let { it == "latex" || it == "tex" } == true
+    val runnableLanguages = setOf("sh", "bash", "shell", "zsh", "python", "python3", "py", "node", "javascript", "js", "ruby", "rb", "perl", "php", "lua", "awk", "sed")
+    val isRunnable = onRunCode != null && node.language?.lowercase() in runnableLanguages
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -233,6 +236,15 @@ private fun CodeBlockView(node: MarkdownNode.CodeBlock, theme: MarkdownTheme, on
                 fontWeight = FontWeight.Medium
             )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (isRunnable) {
+                    Text(
+                        text = "▶ Run",
+                        color = androidx.compose.ui.graphics.Color(0xFF4EC9B0),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable { onRunCode?.invoke(node.code, node.language ?: "sh") }
+                    )
+                }
                 if (isLatex && onExportPdf != null) {
                     Text(
                         text = "Export PDF",
