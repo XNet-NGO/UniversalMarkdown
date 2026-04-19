@@ -395,7 +395,7 @@ class ComposeMarkdownVisitor(private val theme: MarkdownTheme) : AbstractVisitor
                 if (headRow != null) {
                     var cell = headRow.firstChild
                     while (cell != null) {
-                        headers += MarkdownNode.TableCell(buildCellText(cell))
+                        headers += buildCellContent(cell)
                         alignments += getCellAlignment(cell)
                         cell = cell.next
                     }
@@ -406,7 +406,7 @@ class ComposeMarkdownVisitor(private val theme: MarkdownTheme) : AbstractVisitor
                     val cells = mutableListOf<MarkdownNode.TableCell>()
                     var cell = row.firstChild
                     while (cell != null) {
-                        cells += MarkdownNode.TableCell(buildCellText(cell))
+                        cells += buildCellContent(cell)
                         cell = cell.next
                     }
                     rows += cells
@@ -418,16 +418,26 @@ class ComposeMarkdownVisitor(private val theme: MarkdownTheme) : AbstractVisitor
         nodes += MarkdownNode.TableBlock(headers, rows, alignments)
     }
 
-    private fun buildCellText(cell: Node): AnnotatedString {
+    private fun buildCellContent(cell: Node): MarkdownNode.TableCell {
         val saved = builder
+        val savedNodes = nodes.toList()
         builder = AnnotatedString.Builder()
+        nodes.clear()
         return try {
             visitChildrenInline(cell)
-            builder.toAnnotatedString()
+            val text = builder.toAnnotatedString()
+            // Check if an ImageBlock was emitted during cell parsing
+            val img = nodes.filterIsInstance<MarkdownNode.ImageBlock>().firstOrNull()
+            MarkdownNode.TableCell(text, img?.url, img?.alt)
         } finally {
             builder = saved
+            nodes.clear()
+            nodes.addAll(savedNodes)
         }
     }
+
+    // Keep old signature for compat
+    private fun buildCellText(cell: Node): AnnotatedString = buildCellContent(cell).text
 
     private fun getCellAlignment(cell: Node): MarkdownNode.TableBlock.Alignment {
         // Use reflection to get alignment from TableCell node

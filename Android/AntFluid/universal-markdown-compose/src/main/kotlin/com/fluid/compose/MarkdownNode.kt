@@ -19,7 +19,7 @@ sealed interface MarkdownNode {
     ) : MarkdownNode {
         enum class Alignment { LEFT, CENTER, RIGHT }
     }
-    data class TableCell(val text: AnnotatedString)
+    data class TableCell(val text: AnnotatedString, val imageUrl: String? = null, val imageAlt: String? = null)
     data class ImageBlock(val url: String, val alt: String) : MarkdownNode
     data class LatexBlock(val formula: String) : MarkdownNode
     data object HorizontalRule : MarkdownNode

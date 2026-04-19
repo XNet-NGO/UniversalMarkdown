@@ -90,7 +90,7 @@ fun UniversalMarkdown(
                 when (node) {
                     is MarkdownNode.TextBlock -> MarkdownText(node, linkHandler, theme)
                     is MarkdownNode.CodeBlock -> CodeBlockView(node, theme, onExportPdf)
-                    is MarkdownNode.TableBlock -> TableBlockView(node, theme)
+                    is MarkdownNode.TableBlock -> TableBlockView(node, theme, onImageContent)
                     is MarkdownNode.ImageBlock -> {
                         if (onImageContent != null) {
                             onImageContent(node.url, node.alt)
@@ -290,7 +290,7 @@ private fun LatexView(node: MarkdownNode.LatexBlock, theme: MarkdownTheme) {
 }
 
 @Composable
-private fun TableBlockView(node: MarkdownNode.TableBlock, theme: MarkdownTheme) {
+private fun TableBlockView(node: MarkdownNode.TableBlock, theme: MarkdownTheme, onImageContent: (@Composable (url: String, alt: String) -> Unit)? = null) {
     val shape = RoundedCornerShape(theme.tableCornerRadius)
     val colCount = node.headers.size.coerceAtLeast(node.rows.firstOrNull()?.size ?: 1)
     Box(
@@ -323,7 +323,17 @@ private fun TableBlockView(node: MarkdownNode.TableBlock, theme: MarkdownTheme) 
                         val cell = row.getOrNull(col)
                         Box(Modifier.fillMaxWidth().background(theme.tableBodyBgColor).padding(8.dp)) {
                             if (cell != null) {
-                                TableCellView(cell.text, theme.tableBodyTextColor, FontWeight.Normal, align, Modifier)
+                                if (cell.imageUrl != null && onImageContent != null) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        onImageContent(cell.imageUrl, cell.imageAlt ?: "")
+                                        if (cell.text.isNotBlank()) {
+                                            Spacer(Modifier.height(4.dp))
+                                            TableCellView(cell.text, theme.tableBodyTextColor, FontWeight.Normal, align, Modifier)
+                                        }
+                                    }
+                                } else {
+                                    TableCellView(cell.text, theme.tableBodyTextColor, FontWeight.Normal, align, Modifier)
+                                }
                             }
                         }
                         if (rowIdx < node.rows.lastIndex) {
