@@ -198,7 +198,6 @@ class ComposeMarkdownVisitor(private val theme: MarkdownTheme) : AbstractVisitor
         val clean = text.literal
             .replace("\uFEFF", "") // BOM
             .replace("\u00AD", "") // soft hyphen
-            .replace("\\n", "\n") // literal \n from LLMs
         if (strikethroughDepth > 0) {
             // Embed U+0336 per grapheme cluster so strikethrough survives copy/paste
             // Use code point iteration to handle surrogate pairs (emoji, ancient scripts)
